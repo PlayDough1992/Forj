@@ -1,0 +1,16 @@
+# Python
+server/.venv/
+server/__pycache__/
+server/*.pyc
+server/forj.db
+
+# Secrets — NEVER commit these
+server/.env
+
+# C++ / CMake
+client/build/
+client/.cache/
+*.o
+*.obj
+*.a
+*.lib
