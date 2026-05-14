@@ -1,6 +1,6 @@
-# Nexus — Open-Source Discord Replacement
+# Forj — Open-Source Discord Replacement
 
-A privacy-respecting, self-hosted chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**.
+A security-focused, self-hosted chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**. Every account requires government ID + face-match KYC verification before access is granted.
 
 ---
 
@@ -10,22 +10,27 @@ A privacy-respecting, self-hosted chat platform with a **Python (FastAPI) server
 client/  (C++/Qt 6)          server/  (Python/FastAPI)
 ┌────────────────────┐        ┌──────────────────────────┐
 │  LoginWindow       │──REST──▶  /auth/register           │
-│  MainWindow        │──REST──▶  /auth/login              │
-│  ApiClient         │──REST──▶  /guilds  /channels  ...  │
+│  KycDialog         │──REST──▶  /auth/kyc/initiate       │
+│  MainWindow        │──REST──▶  /guilds  /channels  ...  │
+│  ApiClient         │──REST──▶  /users  /dms  ...        │
 │  WebSocketClient   │──WS────▶  /ws  (real-time events)  │
 └────────────────────┘        └──────────────┬───────────┘
                                               │ SQLite (default)
-                                              │ PostgreSQL (optional)
                                               └──────────────────────
 ```
 
 ### Features
-- User registration & JWT authentication
+- User registration & JWT authentication with **token versioning**
+- **KYC identity verification** — government ID + face match via [Didit](https://didit.me) (500 free/month). All API endpoints blocked until verified.
 - **Servers (Guilds)** — create or join via invite code
 - **Text channels** inside each server
+- **Direct messages**
 - Real-time messaging over WebSockets
 - Online/offline presence indicators
 - Member list with roles (owner, admin, member)
+- **Content safety filtering** — regex pattern matching + conversation freeze on threshold breach
+- Server profile avatars, roles, bans, invites
+- Voice channel infrastructure (WebRTC-ready)
 
 ---
 
@@ -33,6 +38,7 @@ client/  (C++/Qt 6)          server/  (Python/FastAPI)
 
 ### Requirements
 - Python 3.11+
+- A [Didit](https://didit.me) account (free tier — 500 verifications/month)
 
 ### Install & run
 
@@ -41,29 +47,30 @@ cd server
 python -m venv .venv
 
 # Windows
-.venv\Scripts\activate
+.venv\Scripts\Activate.ps1
 # macOS / Linux
 source .venv/bin/activate
 
 pip install -r requirements.txt
-
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+uvicorn main:app --host 0.0.0.0 --port 8000
 ```
-
-The server starts at `http://localhost:8000`.  
-Interactive API docs: `http://localhost:8000/docs`
 
 ### Configuration
 
-| Variable       | Default                          | Description                        |
-|----------------|----------------------------------|------------------------------------|
-| `DATABASE_URL` | `sqlite:///./nexus.db`           | SQLAlchemy DB URL                  |
-| `SECRET_KEY`   | hard-coded placeholder           | **Change before deploying!** (auth.py) |
+Create `server/.env` with the following (never commit this file):
 
-To use PostgreSQL:
-```bash
-DATABASE_URL="postgresql://user:pass@localhost/nexus" uvicorn main:app --host 0.0.0.0 --port 8000
+```env
+DIDIT_API_KEY=your_didit_api_key
+DIDIT_WORKFLOW_ID=your_kyc_workflow_uuid
+DIDIT_WEBHOOK_SECRET=your_webhook_signing_secret
+DIDIT_CALLBACK_URL=https://your-public-url/auth/didit/callback
 ```
+
+Get these values from the [Didit console](https://console.didit.me):
+1. **API Key** — Console → API Keys
+2. **Workflow ID** — Console → Workflows → create a KYC workflow → copy the UUID
+3. **Webhook Secret** — Console → Webhooks → Signing Secret
+4. **Callback URL** — must be publicly reachable (use [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or similar for local dev)
 
 ---
 
@@ -72,73 +79,77 @@ DATABASE_URL="postgresql://user:pass@localhost/nexus" uvicorn main:app --host 0.
 ### Requirements
 - CMake 3.20+
 - Qt 6.5+ (Widgets, Network, WebSockets modules)
-- A C++20 compiler (MSVC 2022, GCC 12, or Clang 15+)
+- C++20 compiler — MSYS2 MinGW64 recommended on Windows
+- MSYS2 path: `C:/msys64/mingw64`
 
 ### Build
 
 ```bash
 cd client
-cmake -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.7.0/msvc2019_64"   # adjust path
-cmake --build build --config Release
-```
-
-On Linux/macOS, Qt is often found automatically:
-```bash
-cmake -B build && cmake --build build
+cmake -B build -G Ninja -DCMAKE_PREFIX_PATH="C:/msys64/mingw64"
+cmake --build build
 ```
 
 ### Run
 
-```bash
-# Windows
-build\Release\Nexus.exe
-
-# Linux / macOS
-./build/Nexus
+```
+client\build\Forj.exe
 ```
 
-> By default the client connects to `http://localhost:8000`. To change the server
-> address, edit `main.cpp` and recompile.
+> To point the client at a different server, edit `src/main.cpp` (the `setBaseUrl` and `connectToServer` lines) and recompile.
+
+### Pre-built client
+
+A pre-built Windows client with all DLLs is available as `Forj-client.zip` in the repo root.
 
 ---
 
 ## Quick-start guide
 
-1. Start the server.
-2. Launch the client and **Register** a new account.
-3. Click **+ New Server** to create your first server — it gets a `#general` channel and an invite code automatically.
-4. Share the invite code with friends; they click **Join Server** and enter the code.
-5. Select a channel and start chatting in real time.
+1. Set up `server/.env` with Didit credentials.
+2. Start the server: `uvicorn main:app --host 0.0.0.0 --port 8000`
+3. Launch `Forj.exe` and **Register** — a KYC verification dialog will open automatically.
+4. Complete identity verification in your browser (government ID + selfie).
+5. The app unlocks once Didit confirms approval.
+6. Click **+ New Server** to create your first server with a `#general` channel and invite code.
+7. Share the invite code with friends.
 
 ---
 
 ## Project structure
 
 ```
-Discord_Replacement/
+Forj/
 ├── server/
 │   ├── main.py               # FastAPI app + all routes
 │   ├── models.py             # SQLAlchemy ORM models
 │   ├── database.py           # Engine & session factory
 │   ├── auth.py               # JWT helpers + dependency
+│   ├── safety.py             # Content safety filtering
 │   ├── websocket_manager.py  # Live connection registry
 │   └── requirements.txt
 └── client/
     ├── CMakeLists.txt
     └── src/
-        ├── main.cpp           # App entry + dark theme
-        ├── ApiClient.{h,cpp}  # All REST calls
-        ├── WebSocketClient.{h,cpp}  # Real-time events
-        ├── LoginWindow.{h,cpp}      # Login / Register dialog
-        └── MainWindow.{h,cpp}       # Main chat UI
+        ├── main.cpp                   # App entry + theme
+        ├── ApiClient.{h,cpp}          # All REST calls
+        ├── WebSocketClient.{h,cpp}    # Real-time events
+        ├── LoginWindow.{h,cpp}        # Login / Register
+        ├── KycDialog.{h,cpp}          # KYC verification wizard
+        ├── MainWindow.{h,cpp}         # Main chat UI
+        ├── ForjDialog.{h,cpp}         # Base themed dialog
+        └── SettingsDialog.{h,cpp}     # User settings
 ```
 
 ---
 
-## Security notes
+## Security
 
-- Passwords are hashed with **bcrypt** (passlib).
-- Sessions use signed **JWT** tokens (python-jose / HS256).
-- All SQL access goes through **SQLAlchemy ORM** — no raw queries.
-- HTML in messages is escaped client-side (`toHtmlEscaped()`).
-- Change `SECRET_KEY` in `server/auth.py` before any public deployment.
+- Every account requires **government ID + face match** (Didit KYC) before access
+- **KYC middleware** blocks the entire API until verified
+- Passwords hashed with **bcrypt**
+- **JWT tokens with version claim** — password changes invalidate all existing sessions
+- All SQL via **SQLAlchemy ORM** — no raw queries
+- **HMAC-SHA256** webhook signature verification for Didit callbacks
+- Content safety filtering with automatic conversation freeze
+- See [COMPLIANCE.md](COMPLIANCE.md) for full compliance status
