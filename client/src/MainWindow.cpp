@@ -37,6 +37,10 @@
 #include <QRegularExpression>
 #include <QSystemTrayIcon>
 #include <QMessageBox>
+#include <QSettings>
+#ifdef Q_OS_LINUX
+#  include <QMediaDevices>
+#endif
 
 // ── Avatar rendering helpers ──────────────────────────────────────────────────
 
@@ -306,6 +310,11 @@ MainWindow::MainWindow(ApiClient* api, WebSocketClient* ws,
     , m_ws(ws)
     , m_me(me)
 {
+    {
+        QSettings s;
+        m_forjrEnabled = s.value("voice/forjrEnabled", true).toBool();
+    }
+
     setWindowTitle(QStringLiteral("Forj — %1").arg(me.username));
     setWindowFlag(Qt::FramelessWindowHint);
     setAttribute(Qt::WA_TranslucentBackground);
@@ -697,7 +706,7 @@ void MainWindow::buildVoiceRoomPane()
     m_voiceMuteBtn = new QPushButton(QString::fromUtf8("\xF0\x9F\x8E\x99"));  // 🎙
     m_voiceMuteBtn->setFixedSize(36, 36);
     m_voiceMuteBtn->setCheckable(true);
-    m_voiceMuteBtn->setToolTip("Mute/Unmute");
+    m_voiceMuteBtn->setToolTip("Mute Microphone");
     m_voiceMuteBtn->setStyleSheet(
         "QPushButton{border:none;font-size:18px;border-radius:6px;background:#36393f;}"
         "QPushButton:hover{background:#4f545c;}"
@@ -705,7 +714,7 @@ void MainWindow::buildVoiceRoomPane()
     );
     connect(m_voiceMuteBtn, &QPushButton::toggled, this, [this](bool checked) {
         m_voiceMuted = checked;
-        m_voiceMuteBtn->setToolTip(checked ? "Unmute" : "Mute");
+        m_voiceMuteBtn->setToolTip(checked ? "Unmute Microphone" : "Mute Microphone");
         if (m_voiceEngine) m_voiceEngine->setMuted(checked);
     });
     ctrlLayout->addWidget(m_voiceMuteBtn);
@@ -714,7 +723,7 @@ void MainWindow::buildVoiceRoomPane()
     m_voiceDeafenBtn = new QPushButton(QString::fromUtf8("\xF0\x9F\x8E\xA7"));  // 🎧
     m_voiceDeafenBtn->setFixedSize(36, 36);
     m_voiceDeafenBtn->setCheckable(true);
-    m_voiceDeafenBtn->setToolTip("Deafen/Undeafen");
+    m_voiceDeafenBtn->setToolTip("Deafen Incoming Audio");
     m_voiceDeafenBtn->setStyleSheet(
         "QPushButton{border:none;font-size:18px;border-radius:6px;background:#36393f;}"
         "QPushButton:hover{background:#4f545c;}"
@@ -722,14 +731,37 @@ void MainWindow::buildVoiceRoomPane()
     );
     connect(m_voiceDeafenBtn, &QPushButton::toggled, this, [this](bool checked) {
         m_voiceDeafened = checked;
-        m_voiceDeafenBtn->setToolTip(checked ? "Undeafen" : "Deafen");
+        m_voiceDeafenBtn->setToolTip(checked ? "Undeafen Incoming Audio" : "Deafen Incoming Audio");
         if (m_voiceEngine) m_voiceEngine->setDeafened(checked);
     });
     ctrlLayout->addWidget(m_voiceDeafenBtn);
 
+    // ForjR noise reduction toggle (green=on, grey=off)
+    m_forjrToggleBtn = new QPushButton("ForjR");
+    m_forjrToggleBtn->setFixedHeight(36);
+    m_forjrToggleBtn->setCheckable(true);
+    m_forjrToggleBtn->setChecked(m_forjrEnabled);
+    m_forjrToggleBtn->setToolTip("ForjR Noise Reduction Filter");
+    m_forjrToggleBtn->setStyleSheet(
+        "QPushButton{border:none;font-size:12px;font-weight:bold;border-radius:6px;padding:0 10px;background:#4f545c;color:#dcddde;}"
+        "QPushButton:hover{background:#5f6670;}"
+        "QPushButton:checked{background:#23a55a;color:#ffffff;}"
+        "QPushButton:checked:hover{background:#2abf68;}"
+    );
+    connect(m_forjrToggleBtn, &QPushButton::toggled, this, [this](bool enabled) {
+        m_forjrEnabled = enabled;
+        m_forjrToggleBtn->setToolTip("ForjR Noise Reduction Filter");
+        QSettings s;
+        s.setValue("voice/forjrEnabled", enabled);
+        if (m_voiceEngine)
+            m_voiceEngine->setForjREnabled(enabled);
+    });
+    ctrlLayout->addWidget(m_forjrToggleBtn);
+
     // Disconnect button
     auto* disconnectBtn = new QPushButton("Disconnect");
     disconnectBtn->setFixedHeight(34);
+    disconnectBtn->setToolTip("Disconnect from voice/video call");
     disconnectBtn->setStyleSheet(
         "QPushButton{border:none;color:#ed4337;font-size:13px;font-weight:bold;"
         "background:#2b2d31;border-radius:6px;padding:0 12px;}"
@@ -1208,7 +1240,36 @@ void MainWindow::onChannelSelected(int row)
 
             // Start audio engine
             if (!m_voiceEngine) {
+                int inputDeviceIndex = 0;
+                int outputDeviceIndex = 0;
+#ifdef Q_OS_LINUX
+                QSettings s;
+                const QString selectedInput = s.value("voice/inputDevice", "Default").toString();
+                const QString selectedOutput = s.value("voice/outputDevice", "Default").toString();
+
+                if (!selectedInput.isEmpty() && selectedInput != "Default") {
+                    const auto inputs = QMediaDevices::audioInputs();
+                    for (int i = 0; i < inputs.size(); ++i) {
+                        if (inputs[i].description() == selectedInput) {
+                            inputDeviceIndex = i + 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (!selectedOutput.isEmpty() && selectedOutput != "Default") {
+                    const auto outputs = QMediaDevices::audioOutputs();
+                    for (int i = 0; i < outputs.size(); ++i) {
+                        if (outputs[i].description() == selectedOutput) {
+                            outputDeviceIndex = i + 1;
+                            break;
+                        }
+                    }
+                }
+#endif
+
                 m_voiceEngine = new VoiceEngine(this);
+                m_voiceEngine->setForjREnabled(m_forjrEnabled);
                 connect(m_voiceEngine, &VoiceEngine::audioFrame, this,
                     [this](const QByteArray& pcm) {
                         m_ws->sendAudioFrame(m_currentVoiceChannelId, pcm);
@@ -1222,7 +1283,7 @@ void MainWindow::onChannelSelected(int row)
                         // Notify others
                         m_ws->sendVoiceSpeaking(m_currentVoiceChannelId, speaking);
                     });
-                m_voiceEngine->start();  // uses default devices (index 0)
+                m_voiceEngine->start(inputDeviceIndex, outputDeviceIndex);
             }
 
             // Switch chat area to voice room view

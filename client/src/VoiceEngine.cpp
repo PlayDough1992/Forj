@@ -1,4 +1,5 @@
 #include "VoiceEngine.h"
+#include "ForjRNoiseReducer.h"
 
 #include <QMetaObject>
 #include <QTimer>
@@ -52,12 +53,18 @@ void CALLBACK VoiceEngine::waveInProc(HWAVEIN hwi, UINT msg,
 
 // ── VoiceEngine ────────────────────────────────────────────────────────────────
 
-VoiceEngine::VoiceEngine(QObject* parent) : QObject(parent) {}
+VoiceEngine::VoiceEngine(QObject* parent)
+    : QObject(parent)
+    , m_forjr(std::make_unique<ForjRNoiseReducer>())
+{}
 
 VoiceEngine::~VoiceEngine() { stop(); }
 
 bool VoiceEngine::start(int inputDeviceIndex, int outputDeviceIndex)
 {
+    if (m_forjr)
+        m_forjr->reset();
+
 #ifdef Q_OS_WIN
     WAVEFORMATEX fmt{};
     fmt.wFormatTag      = WAVE_FORMAT_PCM;
@@ -225,9 +232,10 @@ void VoiceEngine::playAudio(int /*userId*/, const QByteArray& pcm)
 #endif
 }
 
-void VoiceEngine::playTestTone()
+void VoiceEngine::playTestTone(int outputDeviceIndex)
 {
 #ifdef Q_OS_WIN
+    Q_UNUSED(outputDeviceIndex)
     if (!m_waveOut) {
         WAVEFORMATEX fmt{};
         fmt.wFormatTag      = WAVE_FORMAT_PCM;
@@ -262,7 +270,10 @@ void VoiceEngine::playTestTone()
         fmt.setChannelCount(kChannels);
         fmt.setSampleFormat(QAudioFormat::Int16);
 
-        const QAudioDevice outDev = QMediaDevices::defaultAudioOutput();
+        const auto outputs = QMediaDevices::audioOutputs();
+        QAudioDevice outDev = QMediaDevices::defaultAudioOutput();
+        if (outputDeviceIndex > 0 && (outputDeviceIndex - 1) < outputs.size())
+            outDev = outputs[outputDeviceIndex - 1];
         if (outDev.isNull()) return;
 
         m_audioOut = new QAudioSink(outDev, fmt, this);
@@ -328,11 +339,17 @@ void VoiceEngine::onAudioCaptured(const QByteArray& data)
 {
     if (!m_running.load()) return;
 
+    const QByteArray processed = (m_forjrEnabled && m_forjr)
+        ? m_forjr->processFrame(data)
+        : data;
+
     // Always compute level even when muted so the settings meter still works
     const double rms = computeRms(data.constData(), data.size());
     emit inputLevelChanged(static_cast<float>(qMin(rms / 5000.0, 1.0)));
 
-    if (rms >= kVadRmsThreshold) {
+    const double vadRms = computeRms(processed.constData(), processed.size());
+
+    if (vadRms >= kVadRmsThreshold) {
         m_silenceFrames = 0;
         if (!m_speaking && !m_muted) {   // don't show ring while muted
             m_speaking = true;
@@ -347,5 +364,5 @@ void VoiceEngine::onAudioCaptured(const QByteArray& data)
     }
 
     if (!m_muted)
-        emit audioFrame(data);   // only transmit when not muted
+        emit audioFrame(processed);   // only transmit when not muted
 }

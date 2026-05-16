@@ -30,6 +30,7 @@ set(SOURCES
     src/ForjDialog.cpp
     src/ForjPrompt.cpp
     src/VoiceEngine.cpp
+    src/ForjRNoiseReducer.cpp
     src/KycDialog.cpp
 )
 
@@ -46,6 +47,7 @@ set(HEADERS
     src/ForjDialog.h
     src/ForjPrompt.h
     src/VoiceEngine.h
+    src/ForjRNoiseReducer.h
     src/KycDialog.h
 )
 

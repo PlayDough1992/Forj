@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QByteArray>
 #include <atomic>
+#include <memory>
 
 #ifdef Q_OS_LINUX
 #  include <QAudioDevice>
@@ -19,6 +20,8 @@ class QAudioSource;
 class QAudioSink;
 class QIODevice;
 #endif
+
+class ForjRNoiseReducer;
 
 // ── VoiceEngine ────────────────────────────────────────────────────────────────
 // Captures microphone audio via WinMM, does simple energy-based voice-activity
@@ -60,12 +63,15 @@ public:
     void setDeafened(bool deafened) { m_deafened = deafened; }
     [[nodiscard]] bool isMuted()    const { return m_muted; }
     [[nodiscard]] bool isDeafened() const { return m_deafened; }
+    void setForjREnabled(bool enabled) { m_forjrEnabled = enabled; }
+    [[nodiscard]] bool isForjREnabled() const { return m_forjrEnabled; }
 
     // Feed one 20-ms PCM frame received from a remote participant into playback.
     void playAudio(int userId, const QByteArray& pcm16leMono);
 
     // Play a short 440 Hz test tone (blocking-safe: queued to waveOut).
-    void playTestTone();
+    // outputDeviceIndex follows start(): 0=default, 1+=specific device.
+    void playTestTone(int outputDeviceIndex = 0);
 
 signals:
     void audioFrame(const QByteArray& pcm16leMono);  // 20-ms frame — only when not muted
@@ -79,6 +85,7 @@ private:
     std::atomic<bool> m_running{false};
     bool m_muted{false};
     bool m_deafened{false};
+    bool m_forjrEnabled{true};
     bool m_speaking{false};
 
     static constexpr double kVadRmsThreshold = 600.0;
@@ -116,6 +123,8 @@ private:
     QAudioDevice  m_selectedOutput;
     QByteArray    m_captureBuffer;
 #endif
+
+    std::unique_ptr<ForjRNoiseReducer> m_forjr;
 
     static double computeRms(const char* buf, int numBytes);
 };

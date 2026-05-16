@@ -370,11 +370,11 @@ void SettingsDialog::onTestMicToggled()
 
 void SettingsDialog::onTestSpeakerClicked()
 {
-    // Play a 440 Hz test tone through default output.
-    // VoiceEngine::playTestTone() opens waveOut internally (WAVE_MAPPER)
+    // Play a 440 Hz test tone through the selected output device.
+    // VoiceEngine::playTestTone() opens platform playback internally
     // when no active voice session is running.
     auto* eng = new VoiceEngine(this);
-    eng->playTestTone();
+    eng->playTestTone(m_outputDeviceCombo->currentIndex());
     // Clean up after the tone has finished (~600 ms tone + buffer drain)
     QTimer::singleShot(700, eng, &QObject::deleteLater);
     m_testSpeakerBtn->setEnabled(false);

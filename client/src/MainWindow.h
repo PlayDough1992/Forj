@@ -234,6 +234,8 @@ private:
     QGridLayout*    m_participantGrid{nullptr};
     QPushButton*    m_voiceMuteBtn{nullptr};
     QPushButton*    m_voiceDeafenBtn{nullptr};
+    QPushButton*    m_forjrToggleBtn{nullptr};
+    bool            m_forjrEnabled{true};
 
     // Left pane (servers + DMs stacked/combined)
     QListWidget*  m_guildList{nullptr};
