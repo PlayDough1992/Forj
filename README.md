@@ -1,6 +1,8 @@
 # Forj — Open-Source Discord Alternative
 
-A security-focused, self-hosted chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**. Every account requires government ID + face-match KYC verification before access is granted.
+A security-focused chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**. Forj is currently operated on an official VPS deployment (not offered as self-hosted). Every account requires government ID + face-match KYC verification before access is granted.
+
+Why choose Forj: [WHY_FORJ.md](WHY_FORJ.md)
 
 ---
 
@@ -34,7 +36,9 @@ client/  (C++/Qt 6)          server/  (Python/FastAPI)
 
 ---
 
-## Server Setup (Python)
+## Server Setup (Python, Development/Maintainers)
+
+Forj production currently runs on the official VPS deployment. The setup below is for development and maintainers.
 
 ### Requirements
 - Python 3.11+
