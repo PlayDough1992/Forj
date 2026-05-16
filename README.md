@@ -2,7 +2,7 @@
 
 A security-focused chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**. Forj is currently operated on an official VPS deployment (not offered as self-hosted). Every account requires government ID + face-match KYC verification before access is granted.
 
-Why choose Forj: [WHY_FORJ.md](WHY_FORJ.md)
+Why choose Forj: [WHY_FORJ.md](WHY_FORJ.md) | [Feature Comparison](FEATURES_FORJ_VS_DISCORD.md)
 
 ---
 
@@ -168,4 +168,5 @@ Forj/
 - **HMAC-SHA256** webhook signature verification for Didit callbacks
 - Content safety filtering with automatic conversation freeze
 - Security hardening backlog checklist: [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)
+- Security comparison vs. Discord: [SECURITY_FORJ_VS_DISCORD.md](SECURITY_FORJ_VS_DISCORD.md)
 - See [COMPLIANCE.md](COMPLIANCE.md) for full compliance status
