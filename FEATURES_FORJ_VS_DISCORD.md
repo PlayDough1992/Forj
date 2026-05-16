@@ -26,7 +26,7 @@ If your community prioritizes trust-first identity and open-source control with 
 | Roles and permissions | Role model with member/admin/owner and role management | Extensive role and permission tooling | Discord |
 | Moderation controls | Roles, bans, content safety filter and freeze controls | Extensive moderation ecosystem and tooling | Discord |
 | Invites | Invite-based server join flow | Mature invite links and controls | Discord |
-| Voice channels | Voice support present (Windows + Linux client path) | Mature voice ecosystem and reliability at scale | Discord |
+| Voice channels | Voice support present (Windows + Linux), ForjR in-house noise reduction filter, user device selection | Mature voice ecosystem with Krisp integration, reliability at scale | Forj (noise reduction), Discord (scale/maturity) |
 | Bots and automation | Bot support present in platform model | Large mature bot/integration ecosystem | Discord |
 | Webhooks | Webhook model and signed callback paths | Broad webhook ecosystem and platform integrations | Discord |
 | Open-source transparency | Client/server code visible and patchable by contributors | Closed-source internals | Forj |
@@ -37,13 +37,15 @@ If your community prioritizes trust-first identity and open-source control with 
 
 - Trust-first access with KYC-gated community model
 - Open-source auditability and direct contribution path
+- **ForjR noise reduction filter** — in-house background noise suppression (no third-party dependency)
+- **Linux device selection** — respects user-configured audio input/output devices
 - Core communication stack already in place:
-- Servers
-- Channels
-- DMs
-- Roles
-- Moderation controls
-- Voice
+  - Servers
+  - Channels
+  - DMs
+  - Roles
+  - Moderation controls
+  - Voice with user-controlled noise reduction toggle
 
 ## Where Discord Is Stronger Right Now
 
