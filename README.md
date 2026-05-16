@@ -78,7 +78,7 @@ Get these values from the [Didit console](https://console.didit.me):
 
 ### Requirements
 - CMake 3.20+
-- Qt 6.5+ (Widgets, Network, WebSockets modules)
+- Qt 6.5+ (Widgets, Network, WebSockets, Multimedia modules)
 - C++20 compiler — MSYS2 MinGW64 recommended on Windows
 - MSYS2 path: `C:/msys64/mingw64`
 
@@ -86,11 +86,22 @@ Get these values from the [Didit console](https://console.didit.me):
 
 ```bash
 cd client
-cmake -B build -G Ninja -DCMAKE_PREFIX_PATH="C:/msys64/mingw64"
+# Linux/macOS (if Qt is discoverable)
+cmake -B build -G Ninja
+
+# Windows (MSYS2 example)
+# cmake -B build -G Ninja -DCMAKE_PREFIX_PATH="C:/msys64/mingw64"
+
 cmake --build build
 ```
 
 ### Run
+
+```bash
+./client/build/Forj
+```
+
+Windows:
 
 ```
 client\build\Forj.exe
@@ -152,4 +163,5 @@ Forj/
 - All SQL via **SQLAlchemy ORM** — no raw queries
 - **HMAC-SHA256** webhook signature verification for Didit callbacks
 - Content safety filtering with automatic conversation freeze
+- Security hardening backlog checklist: [SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)
 - See [COMPLIANCE.md](COMPLIANCE.md) for full compliance status
