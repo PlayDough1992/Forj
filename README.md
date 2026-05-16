@@ -1,4 +1,4 @@
-# Forj — Open-Source Discord Replacement
+# Forj — Open-Source Discord Alternative
 
 A security-focused, self-hosted chat platform with a **Python (FastAPI) server** and a **C++ (Qt 6) desktop client**. Every account requires government ID + face-match KYC verification before access is granted.
 
