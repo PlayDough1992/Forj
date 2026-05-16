@@ -33,6 +33,7 @@ client/  (C++/Qt 6)          server/  (Python/FastAPI)
 - **Content safety filtering** — regex pattern matching + conversation freeze on threshold breach
 - Server profile avatars, roles, bans, invites
 - Voice channel infrastructure (WebRTC-ready)
+- **ForjR noise reduction filter** — in-house microphone background noise suppression (user-toggleable)
 
 ---
 
