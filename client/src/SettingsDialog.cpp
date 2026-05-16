@@ -11,6 +11,7 @@
 #include <QGroupBox>
 #include <QScrollArea>
 #include <QSettings>
+#include <QMediaDevices>
 
 #ifdef Q_OS_WIN
 #  define WIN32_LEAN_AND_MEAN
@@ -233,6 +234,16 @@ void SettingsDialog::buildVoiceVideoTab()
         if (waveOutGetDevCaps(static_cast<UINT>(i), &caps, sizeof(caps)) == MMSYSERR_NOERROR)
             m_outputDeviceCombo->addItem(QString::fromWCharArray(caps.szPname));
     }
+#elif defined(Q_OS_LINUX)
+    m_inputDeviceCombo->addItem("Default");
+    const auto inputs = QMediaDevices::audioInputs();
+    for (const auto& dev : inputs)
+        m_inputDeviceCombo->addItem(dev.description());
+
+    m_outputDeviceCombo->addItem("Default");
+    const auto outputs = QMediaDevices::audioOutputs();
+    for (const auto& dev : outputs)
+        m_outputDeviceCombo->addItem(dev.description());
 #else
     m_inputDeviceCombo->addItem("Default (not configurable on this platform)");
     m_outputDeviceCombo->addItem("Default (not configurable on this platform)");

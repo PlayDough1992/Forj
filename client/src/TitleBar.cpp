@@ -44,6 +44,7 @@ TitleBar::TitleBar(QWidget* parent) : QWidget(parent)
         logoLabel->setPixmap(iconPix.scaled(20, 20, Qt::KeepAspectRatio, Qt::SmoothTransformation));
     else
         logoLabel->setText("\u2692");  // fallback hammer
+    logoLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     logoLabel->setFixedWidth(24);
     logoLabel->setStyleSheet("background:transparent;");
     layout->addWidget(logoLabel);
@@ -51,6 +52,7 @@ TitleBar::TitleBar(QWidget* parent) : QWidget(parent)
     layout->addSpacing(8);
 
     m_titleLabel = new QLabel;
+    m_titleLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_titleLabel->setStyleSheet(
         "color:#8e9297; font-size:11px; background:transparent;");
     layout->addWidget(m_titleLabel);
@@ -99,8 +101,19 @@ void TitleBar::updateMaxBtn()
 void TitleBar::mousePressEvent(QMouseEvent* e)
 {
     if (e->button() == Qt::LeftButton) {
-        m_dragging = true;
-        m_dragStart = e->globalPosition().toPoint() - window()->frameGeometry().topLeft();
+        // Check if click is on a button; if so, let the button handle it
+        QWidget* childAtPos = childAt(e->pos());
+        if (childAtPos != m_minBtn && childAtPos != m_maxBtn && childAtPos != m_closeBtn) {
+            // Native move is required on many Linux/Wayland setups.
+            if (window() && window()->windowHandle() && window()->windowHandle()->startSystemMove()) {
+                e->accept();
+                return;
+            }
+            m_dragging = true;
+            m_dragStart = e->globalPosition().toPoint() - window()->frameGeometry().topLeft();
+            e->accept();
+            return;
+        }
     }
     QWidget::mousePressEvent(e);
 }
@@ -116,13 +129,19 @@ void TitleBar::mouseMoveEvent(QMouseEvent* e)
                                  kBarHeight / 2);
         }
         window()->move(e->globalPosition().toPoint() - m_dragStart);
+        e->accept();
+        return;
     }
     QWidget::mouseMoveEvent(e);
 }
 
 void TitleBar::mouseReleaseEvent(QMouseEvent* e)
 {
-    m_dragging = false;
+    if (m_dragging) {
+        m_dragging = false;
+        e->accept();
+        return;
+    }
     QWidget::mouseReleaseEvent(e);
 }
 

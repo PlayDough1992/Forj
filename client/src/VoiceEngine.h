@@ -4,10 +4,20 @@
 #include <QByteArray>
 #include <atomic>
 
+#ifdef Q_OS_LINUX
+#  include <QAudioDevice>
+#endif
+
 #ifdef Q_OS_WIN
 #  define WIN32_LEAN_AND_MEAN
 #  include <windows.h>
 #  include <mmsystem.h>
+#endif
+
+#ifdef Q_OS_LINUX
+class QAudioSource;
+class QAudioSink;
+class QIODevice;
 #endif
 
 // ── VoiceEngine ────────────────────────────────────────────────────────────────
@@ -94,7 +104,18 @@ private:
     static void CALLBACK waveInProc(HWAVEIN hwi, UINT msg,
                                     DWORD_PTR instance,
                                     DWORD_PTR param1, DWORD_PTR param2);
-    static double computeRms(const char* buf, int numBytes);
     void submitTestToneFrames();
 #endif
+
+#ifdef Q_OS_LINUX
+    QAudioSource* m_audioIn{nullptr};
+    QAudioSink*   m_audioOut{nullptr};
+    QIODevice*    m_inputIo{nullptr};
+    QIODevice*    m_outputIo{nullptr};
+    QAudioDevice  m_selectedInput;
+    QAudioDevice  m_selectedOutput;
+    QByteArray    m_captureBuffer;
+#endif
+
+    static double computeRms(const char* buf, int numBytes);
 };

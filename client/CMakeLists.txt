@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON)
 # ── Locate Qt6 ─────────────────────────────────────────────────────────────────
 # If Qt is not on the system PATH, point CMake at your installation, e.g.:
 #   cmake -DCMAKE_PREFIX_PATH="C:/Qt/6.7.0/msvc2019_64" ..
-find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network WebSockets)
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Network WebSockets Multimedia)
 
 # ── Sources ────────────────────────────────────────────────────────────────────
 set(SOURCES
@@ -64,6 +64,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Qt6::Widgets
     Qt6::Network
     Qt6::WebSockets
+    Qt6::Multimedia
 )
 
 if(WIN32)
